@@ -1,0 +1,53 @@
+#progressBarContainer {
+    position: fixed;
+    z-index: 10;
+    background: rgba(255,255,255,0.05);
+    width: 100%;
+    top: 70px;
+    left: 0;
+}
+#progressBar {
+    background: linear-gradient(90deg,rgb(193,15,255) 20%,rgb(6,0,151) 73%,rgb(130,4,255) 100%);
+    transform-origin: top left;
+    transform: scale(0,0);
+    opacity: 0;
+}
+#progressBarContainer,
+#progressBar {
+    height: 6px;
+}
+
+@media screen  and (min-width:1024px) and (max-width:1150px) {
+    #progressBarContainer {
+        top:100px;
+    }
+    #progressBarContainer,
+#progressBar {
+    height: 10px;
+}
+}
+
+@media screen  and (min-width:500px) and (max-width:640px) {
+    #progressBarContainer {
+        top:66px;
+    }
+    #progressBarContainer,
+#progressBar {
+    height: 6px;
+}
+}
+
+@media screen  and (min-width:250px) and (max-width:499px) {
+    #progressBarContainer {
+        top:67px;
+    }
+
+    #progressBarContainer,
+    #progressBar {
+        height: 8px;
+    }
+}
+
+button,a{
+    cursor: pointer;
+}

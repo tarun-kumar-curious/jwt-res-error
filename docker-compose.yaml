@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database Service
+  PostgreSQLDatabase:
+    container_name: PostgreSQLContainer
+    image: postgres:16.1
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - 5432:5432  # Map container port to host
+    volumes:
+      - ./DBScripts:/docker-entrypoint-initdb.d  # Mount initialization scripts
+      - postgres-volume:/var/lib/postgresql/data  # Mount volume for data persistence
+    networks:
+      - Mentor-Mentees-Connect-Network  # Connect to the Mentor-Mentees-Connect-Network
+
+  # pgAdmin4 Service
+  pgadmin4-dashboard:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin4-dashboard
+    restart: always
+    volumes:
+      - pgadmin-volume:/var/lib/pgadmin  # Mount volume for pgAdmin data
+    ports:
+      - 5433:80  # Map container port to host
+    networks:
+      - Mentor-Mentees-Connect-Network  # Connect to the Mentor-Mentees-Connect-Network
+    environment:
+      PGADMIN_DEFAULT_EMAIL: curiousdevelopers.in@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    depends_on:
+      - PostgreSQLDatabase  # Ensure pgAdmin4 starts after the database service
+
+  MongoDBContainer:
+    image: mongo:latest
+    restart: always
+    container_name: MongoDBContainer
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+    ports:
+      - 27017:27017
+    networks:
+      - Mentor-Mentees-Connect-Network
+    volumes:
+      - mongodb-volume:/data/db
+      - mongodb-volume:/data/configdb
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    container_name: MongoExpressContainer
+    ports:
+      - 8081:8081
+    depends_on:
+      - MongoDBContainer  
+    environment:
+      ME_CONFIG_MONGODB_SERVER: MongoDBContainer #mongodb container name
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${ME_CONFIG_MONGODB_ADMINUSERNAME} #mongodb username
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${ME_CONFIG_MONGODB_ADMINPASSWORD} #mongodb pass
+      ME_CONFIG_BASICAUTH_USERNAME: ${ME_CONFIG_BASICAUTH_USERNAME} #mongo-express login username
+      ME_CONFIG_BASICAUTH_PASSWORD: ${ME_CONFIG_BASICAUTH_PASSWORD} #mongo-express login password
+    networks:
+      - Mentor-Mentees-Connect-Network
+      
+networks:
+  Mentor-Mentees-Connect-Network:
+    name: Mentor-Mentees-Connect-Network
+    driver: bridge
+
+volumes:
+  mongodb-volume:
+    name: mongodb-volume
+  postgres-volume:
+    name: postgres-volume  # Define volume for PostgreSQL data
+  pgadmin-volume:
+    name: pgadmin-volume  # Define volume for pgAdmin data
