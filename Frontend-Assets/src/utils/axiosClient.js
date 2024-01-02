@@ -1,7 +1,8 @@
-import axios from "axios";
-import { KEY_ACCESS_TOKEN, getItem, setItem } from "./localStorageManager";
+import axios, { AxiosError } from "axios";
+import { KEY_ACCESS_TOKEN, getItem, removeItem, setItem } from "./localStorageManager";
+import { json } from "react-router-dom";
 
-const baseURL = "http://localhost:4000";
+const baseURL = "http://localhost:5000";
 export const axiosClient = axios.create({
     baseURL,
     withCredentials: true,
@@ -18,47 +19,49 @@ axiosClient.interceptors.request.use((request) => {
 axiosClient.interceptors.response.use(
     async (response) => {
         try {
-        const data = response.data;
-        console.log("response from axios res:", data);
+            console.log("response", response);
+            const responseStatus = response.status;
 
-        if (data.status === "ok") {
-            return data;
-        }
-
-        const originalRequest = response.config;
-        const statusCode = data.statusCode;
-        const error = data.message;
-
-        if (statusCode === 401 && !originalRequest._retry) {
-            // this means that the access token is expired
-            originalRequest._retry = true;
-            // const response = await axios.get('/auth/refresh');
-
-            const response = await axios
-                .create({
-                    withCredentials: true,
-                })
-                .get(`${process.env.REACT_APP_SERVER_BASE_URL}/api/refresh`);
-
-            // console.log('response from  backend', response);
-
-            if (response.data.status === "ok") {
-                setItem(KEY_ACCESS_TOKEN, response.data.result.accessToken);
-
-                originalRequest.headers["Authorization"] = `Bearer ${response.data.result.accessToken}`;
-
-                return axios(originalRequest);
-            } else {
-                removeItem(KEY_ACCESS_TOKEN);
-                window.location.replace("/local", "_self");
-                return Promise.reject(error);
+            if (responseStatus === 200) {
+                return response.data;
             }
-        }
-        // console.log("Axios error", error);
-
-        return Promise.reject(error);
         } catch (error) {
-            return console.log(error);
+            return console.log("catch error:", error);
+        }
+    },
+    async (error) => {
+        try {
+            const originalRequest = error.response.config;
+            if (error.response && error.response.status === 401 && !originalRequest._retry) {
+                // Handle 401 error explicitly
+                originalRequest._retry = true;
+                const response = await axios
+                    .create({
+                        withCredentials: true,
+                    })
+                    .post(`/api/refresh`);
+
+                console.log("response from  backend", response);
+
+                if (response.status === 200 || response.status === 201) {
+                    setItem(KEY_ACCESS_TOKEN, response.data.accessToken);
+                    console.log("setItem donewith ", response.data.accessToken);
+                    originalRequest.headers["Authorization"] = `Bearer ${response.data.accessToken}`;
+                    console.log("originalRequest", originalRequest);
+                    return axios(originalRequest);
+                } else {
+                    console.log("Error.response", error.response);
+                    removeItem(KEY_ACCESS_TOKEN);
+                    window.location.replace("/signin", "_self");
+                    return Promise.reject(error);
+                }
+
+                console.error("Unauthorized error:", error);
+                // Perform any additional actions or redirect to login page
+            }
+            return Promise.reject(error);
+        } catch (error) {
+            return console.log("catch error: error param", error);
         }
     }
 );
